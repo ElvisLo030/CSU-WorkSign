@@ -1,0 +1,36 @@
+---
+// 手寫簽名區：提供 canvas 元素與清除按鈕，互動邏輯由 index.astro 的 <script> 掌管
+---
+
+<div class="space-y-2">
+  <div class="flex items-center justify-between">
+    <label class="text-sm font-medium text-primary">
+      立同意書人簽名
+      <span class="text-error">*</span>
+    </label>
+    <button
+      id="clear-signature-btn"
+      type="button"
+      class="rounded px-2.5 py-1 text-xs text-muted ring-1 ring-border transition hover:bg-gray-100 hover:text-text active:scale-95"
+    >
+      清除重簽
+    </button>
+  </div>
+
+  <div class="relative overflow-hidden rounded-lg border-2 border-border bg-surface focus-within:border-accent">
+    <canvas
+      id="signature-canvas"
+      class="block w-full touch-none"
+      style="height: 160px;"
+    ></canvas>
+    <!-- 提示文字（簽名後由 JS 隱藏）-->
+    <p
+      id="signature-hint"
+      class="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted/70 select-none"
+    >
+      請在此處手寫簽名
+    </p>
+  </div>
+
+  <p id="signature-error" class="hidden text-xs text-error">請先完成手寫簽名</p>
+</div>

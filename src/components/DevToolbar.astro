@@ -1,0 +1,42 @@
+---
+// 測試工具列：自動將身分證字號與簽名儲存至 localStorage，方便細調 PDF 座標時不必重填
+// 僅限本地開發使用，資料仍不離開裝置
+---
+
+<details
+  id="dev-toolbar"
+  class="rounded-lg border border-dashed border-amber-300 bg-amber-50 px-4 py-3 text-xs"
+>
+  <summary class="flex cursor-pointer select-none items-center gap-2 font-semibold text-amber-700 marker:content-none">
+    <svg xmlns="http://www.w3.org/2000/svg" class="size-4 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+      <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
+    </svg>
+    測試工具（本地暫存）
+    <span id="dev-status-badge" class="ml-auto rounded-full bg-gray-200 px-2 py-0.5 font-normal text-gray-500">未暫存</span>
+  </summary>
+
+  <div class="mt-3 space-y-2 text-amber-800">
+    <p class="leading-relaxed">
+      啟用後，身分證字號與簽名會自動儲存至瀏覽器 <code class="rounded bg-amber-100 px-1">localStorage</code>，重整頁面後自動還原。
+    </p>
+
+    <div class="flex flex-wrap gap-2 pt-1">
+      <button
+        id="dev-save-btn"
+        type="button"
+        class="rounded-md bg-amber-600 px-3 py-1.5 font-semibold text-white hover:bg-amber-700 active:scale-95 transition"
+      >
+        立即儲存
+      </button>
+      <button
+        id="dev-clear-btn"
+        type="button"
+        class="rounded-md bg-white px-3 py-1.5 font-semibold text-amber-700 ring-1 ring-amber-300 hover:bg-amber-50 active:scale-95 transition"
+      >
+        清除暫存
+      </button>
+    </div>
+
+    <p id="dev-last-saved" class="text-amber-600/70"></p>
+  </div>
+</details>

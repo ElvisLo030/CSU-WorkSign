@@ -1,0 +1,20 @@
+---
+// 身分證字號輸入欄：即時驗證，錯誤訊息由 JS 控制
+---
+
+<div class="space-y-1.5">
+  <label for="id-number" class="block text-sm font-medium text-primary">
+    身分證統一編號
+    <span class="text-error">*</span>
+  </label>
+  <input
+    id="id-number"
+    type="text"
+    inputmode="text"
+    autocomplete="off"
+    maxlength="10"
+    placeholder="A123456789"
+    class="w-full rounded-lg border border-border bg-surface px-3.5 py-2.5 text-sm uppercase tracking-widest text-text shadow-xs outline-none transition placeholder:text-muted/60 focus:border-accent focus:ring-2 focus:ring-accent/20"
+  />
+  <p id="id-error" class="hidden text-xs text-error"></p>
+</div>

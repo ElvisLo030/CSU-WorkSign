@@ -1,0 +1,367 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ConsentText from '../components/ConsentText.astro';
+import SignatureCanvas from '../components/SignatureCanvas.astro';
+import IdNumberField from '../components/IdNumberField.astro';
+import DateField from '../components/DateField.astro';
+import PrivacyNotice from '../components/PrivacyNotice.astro';
+import DownloadButton from '../components/DownloadButton.astro';
+import PreviewModal from '../components/PreviewModal.astro';
+import DevToolbar from '../components/DevToolbar.astro';
+---
+
+<BaseLayout>
+  <!-- 頁首 -->
+  <header class="bg-primary px-5 py-4 text-white shadow-md">
+    <div class="mx-auto flex max-w-xl items-center justify-between lg:max-w-2xl">
+      <div>
+        <h1 class="text-2xl font-bold tracking-widest">正修工讀簽</h1>
+        <p class="mt-0.5 text-xs tracking-wide text-white/55">兼職人員同意書線上簽署、匯出 PDF小工具</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主內容 -->
+  <main class="mx-auto max-w-xl lg:max-w-2xl px-4 py-6 space-y-6">
+    <PrivacyNotice />
+    <ConsentText />
+
+    <form id="consent-form" novalidate class="space-y-5">
+      <IdNumberField />
+      <DateField />
+      <SignatureCanvas />
+      <DownloadButton />
+      <DevToolbar />
+    </form>
+  </main>
+
+  <!-- 頁尾 -->
+  <footer class="border-t border-border mt-4 px-4 py-8 text-center space-y-1.5">
+    <p class="text-xs text-muted">
+      同意書文件版權屬
+      <span class="font-medium text-primary">正修學校財團法人正修科技大學</span>
+      所有
+    </p>
+    <p class="text-xs text-muted">
+      本線上簽署工具由
+      <a href="https://elvislo.tw" class="font-medium text-accent hover:underline">Elvis Lo</a>
+      開發 &middot; 非正修科大官方系統
+    </p>
+  </footer>
+
+  <!-- PDF 預覽 Modal -->
+  <PreviewModal />
+</BaseLayout>
+
+<script>
+  import { IdValidator } from '../services/validators/IdValidator.js';
+  import { DateValidator } from '../services/validators/DateValidator.js';
+  import { SignatureService } from '../services/SignatureService.js';
+  import { PdfService } from '../services/PdfService.js';
+  import { PdfDownloader } from '../utils/download.js';
+  import { getTodayMinguo } from '../services/DateService.js';
+  import type { MinguoDate } from '../types/index.js';
+
+  // ── 服務實體────────────────────────────────────────────────────────
+  const signatureService = new SignatureService();
+  const idValidator = new IdValidator();
+  const dateValidator = new DateValidator();
+  const pdfService = new PdfService();
+  const pdfDownloader = new PdfDownloader();
+
+  // ── DOM 元素────────────────────────────────────────────────────────
+  const canvas = document.getElementById('signature-canvas') as HTMLCanvasElement;
+  const clearBtn = document.getElementById('clear-signature-btn') as HTMLButtonElement;
+  const idInput = document.getElementById('id-number') as HTMLInputElement;
+  const yearInput = document.getElementById('minguo-year') as HTMLInputElement;
+  const monthInput = document.getElementById('minguo-month') as HTMLInputElement;
+  const dayInput = document.getElementById('minguo-day') as HTMLInputElement;
+  const downloadBtn = document.getElementById('download-btn') as HTMLButtonElement;
+  const downloadLabel = document.getElementById('download-label') as HTMLSpanElement;
+  const downloadIcon = document.getElementById('download-icon') as HTMLElement;
+  const loadingIcon = document.getElementById('loading-icon') as HTMLElement;
+  const previewBtn = document.getElementById('preview-btn') as HTMLButtonElement;
+  const previewLabel = document.getElementById('preview-label') as HTMLSpanElement;
+  const signatureHint = document.getElementById('signature-hint') as HTMLParagraphElement;
+  const idErrorEl = document.getElementById('id-error') as HTMLParagraphElement;
+  const dateErrorEl = document.getElementById('date-error') as HTMLParagraphElement;
+  const signErrorEl = document.getElementById('signature-error') as HTMLParagraphElement;
+
+  // ── 預覽 Modal 元素─────────────────────────────────────────────────
+  const previewModal = document.getElementById('preview-modal') as HTMLDivElement;
+  const previewIframe = document.getElementById('preview-iframe') as HTMLIFrameElement;
+  const previewCloseBtn = document.getElementById('preview-close-btn') as HTMLButtonElement;
+  const previewDownloadBtn = document.getElementById('preview-download-btn') as HTMLButtonElement;
+  const previewNewtabLink = document.getElementById('preview-newtab-link') as HTMLAnchorElement;
+
+  // 目前的預覽 blob URL（關閉時 revoke 釋放記憶體）
+  let currentPreviewUrl: string | null = null;
+  let currentFilename = '兼職同意書.pdf';
+
+  // ── 測試工具：localStorage 暫存────────────────────────────────────
+  const DEV_KEY_ID  = 'csu_dev_id';
+  const DEV_KEY_SIG = 'csu_dev_signature';
+
+  const devSaveBtn    = document.getElementById('dev-save-btn') as HTMLButtonElement;
+  const devClearBtn   = document.getElementById('dev-clear-btn') as HTMLButtonElement;
+  const devStatusBadge = document.getElementById('dev-status-badge') as HTMLSpanElement;
+  const devLastSaved  = document.getElementById('dev-last-saved') as HTMLParagraphElement;
+
+  function devSave(): void {
+    try {
+      localStorage.setItem(DEV_KEY_ID, idInput.value);
+      const sigData = signatureService.exportData();
+      localStorage.setItem(DEV_KEY_SIG, JSON.stringify(sigData));
+      const now = new Date().toLocaleTimeString('zh-TW');
+      devStatusBadge.textContent = '已暫存';
+      devStatusBadge.className = devStatusBadge.className
+        .replace('bg-gray-200 text-gray-500', 'bg-green-100 text-green-700');
+      devLastSaved.textContent = `最後儲存：${now}`;
+    } catch {
+      devLastSaved.textContent = '儲存失敗（可能超過 localStorage 容量）';
+    }
+  }
+
+  function devClear(): void {
+    localStorage.removeItem(DEV_KEY_ID);
+    localStorage.removeItem(DEV_KEY_SIG);
+    devStatusBadge.textContent = '未暫存';
+    devStatusBadge.className = devStatusBadge.className
+      .replace('bg-green-100 text-green-700', 'bg-gray-200 text-gray-500');
+    devLastSaved.textContent = '已清除';
+  }
+
+  function devRestore(): void {
+    const savedId = localStorage.getItem(DEV_KEY_ID);
+    if (savedId) {
+      idInput.value = savedId;
+    }
+
+    const savedSig = localStorage.getItem(DEV_KEY_SIG);
+    if (savedSig) {
+      try {
+        const data = JSON.parse(savedSig) as object[];
+        if (data.length > 0) {
+          // 等 canvas 完整渲染後才還原，避免 HiDPI 縮放衝突
+          requestAnimationFrame(() => {
+            signatureService.importData(data);
+            signatureHint.classList.add('hidden');
+          });
+        }
+      } catch { /* 格式損壞就忽略 */ }
+    }
+
+    if (savedId || savedSig) {
+      devStatusBadge.textContent = '已暫存';
+      devStatusBadge.className = devStatusBadge.className
+        .replace('bg-gray-200 text-gray-500', 'bg-green-100 text-green-700');
+      devLastSaved.textContent = '已從本地還原';
+    }
+  }
+
+  devSaveBtn.addEventListener('click', devSave);
+  devClearBtn.addEventListener('click', devClear);
+
+  // 身分證字號變更時自動更新暫存（若已有儲存記錄）
+  idInput.addEventListener('input', () => {
+    if (localStorage.getItem(DEV_KEY_ID) !== null) devSave();
+  });
+
+  // 簽名結束時（pointerup）自動更新暫存（若已有儲存記錄）
+  canvas.addEventListener('pointerup', () => {
+    if (localStorage.getItem(DEV_KEY_SIG) !== null) devSave();
+  });
+
+  // ── 初始化────────────────────────────────────────────────────────
+  signatureService.initialize(canvas);
+
+  const today = getTodayMinguo();
+  yearInput.value = String(today.year);
+  monthInput.value = String(today.month);
+  dayInput.value = String(today.day);
+
+  // 還原 localStorage 暫存（若存在）
+  devRestore();
+
+  canvas.addEventListener('pointerdown', () => {
+    signatureHint.classList.add('hidden');
+    signErrorEl.classList.add('hidden');
+  });
+
+  clearBtn.addEventListener('click', () => {
+    signatureService.clear();
+    signatureHint.classList.remove('hidden');
+  });
+
+  // ── 即時驗證（blur）──────────────────────────────────────────────
+  idInput.addEventListener('blur', () => {
+    const result = idValidator.validate(idInput.value);
+    showFieldError(idErrorEl, result.errorMessage);
+    toggleBorderError(idInput, !result.isValid);
+  });
+
+  [yearInput, monthInput, dayInput].forEach(input => {
+    input.addEventListener('blur', () => validateDate());
+  });
+
+  function validateDate(): boolean {
+    const date: MinguoDate = {
+      year: parseInt(yearInput.value, 10),
+      month: parseInt(monthInput.value, 10),
+      day: parseInt(dayInput.value, 10),
+    };
+    const result = dateValidator.validate(date);
+    showFieldError(dateErrorEl, result.errorMessage);
+    [yearInput, monthInput, dayInput].forEach(el => toggleBorderError(el, !result.isValid));
+    return result.isValid;
+  }
+
+  // ── 共用：驗證並產生 PDF bytes ───────────────────────────────────
+  async function generatePdfBytes(): Promise<{ bytes: Uint8Array; filename: string } | null> {
+    const idResult = idValidator.validate(idInput.value);
+    showFieldError(idErrorEl, idResult.errorMessage);
+    toggleBorderError(idInput, !idResult.isValid);
+
+    const dateValid = validateDate();
+    const signatureValid = !signatureService.isEmpty();
+    showFieldError(signErrorEl, signatureValid ? null : '請先完成手寫簽名');
+
+    if (!idResult.isValid || !dateValid || !signatureValid) return null;
+
+    const signatureDataUrl = signatureService.exportAsPng();
+    if (!signatureDataUrl) return null;
+
+    const formData = {
+      idNumber: idInput.value.trim().toUpperCase(),
+      minguoYear: parseInt(yearInput.value, 10),
+      month: parseInt(monthInput.value, 10),
+      day: parseInt(dayInput.value, 10),
+    };
+
+    const bytes = await pdfService.compose(formData, signatureDataUrl);
+    return { bytes, filename: `兼職同意書_${formData.idNumber}.pdf` };
+  }
+
+  // ── 預覽 PDF ─────────────────────────────────────────────────────
+  previewBtn.addEventListener('click', async () => {
+    setPreviewLoading(true);
+    try {
+      const result = await generatePdfBytes();
+      if (!result) return;
+
+      // 釋放舊的 blob URL
+      if (currentPreviewUrl) URL.revokeObjectURL(currentPreviewUrl);
+
+      const blob = new Blob([result.bytes], { type: 'application/pdf' });
+      currentPreviewUrl = URL.createObjectURL(blob);
+      currentFilename = result.filename;
+
+      // iframe 載入 PDF（Chrome/Firefox/Safari macOS 支援；iOS Safari 不支援 iframe PDF）
+      previewIframe.src = currentPreviewUrl;
+      previewNewtabLink.href = currentPreviewUrl;
+
+      // 偵測 iOS Safari → 顯示「在新分頁開啟」備案連結
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      previewNewtabLink.classList.toggle('hidden', !isIOS);
+
+      openModal();
+    } catch (err) {
+      console.error('PDF 預覽失敗：', err);
+      alert('PDF 產生過程發生錯誤，請重新嘗試。');
+    } finally {
+      setPreviewLoading(false);
+    }
+  });
+
+  // ── 從 Modal 直接下載 ─────────────────────────────────────────────
+  previewDownloadBtn.addEventListener('click', () => {
+    if (!currentPreviewUrl) return;
+    pdfDownloader.download(
+      // 重新從 blob URL 取 bytes（不重新產生 PDF）
+      new Uint8Array(), // placeholder — 改用 anchor 下載
+      currentFilename
+    );
+    // 直接用 anchor 下載現有 blob URL
+    const a = document.createElement('a');
+    a.href = currentPreviewUrl;
+    a.download = currentFilename;
+    a.click();
+  });
+
+  // ── 直接下載（不預覽）────────────────────────────────────────────
+  downloadBtn.addEventListener('click', async () => {
+    setDownloadLoading(true);
+    try {
+      const result = await generatePdfBytes();
+      if (!result) return;
+      pdfDownloader.download(result.bytes, result.filename);
+    } catch (err) {
+      console.error('PDF 產生失敗：', err);
+      alert('PDF 產生過程發生錯誤，請重新嘗試。');
+    } finally {
+      setDownloadLoading(false);
+    }
+  });
+
+  // ── Modal 開關────────────────────────────────────────────────────
+  function openModal(): void {
+    previewModal.classList.remove('hidden');
+    previewModal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal(): void {
+    previewModal.classList.add('hidden');
+    previewModal.classList.remove('flex');
+    document.body.style.overflow = '';
+    // 清空 iframe src，停止 PDF render（釋放資源）
+    previewIframe.src = '';
+    // revoke blob URL 釋放記憶體
+    if (currentPreviewUrl) {
+      URL.revokeObjectURL(currentPreviewUrl);
+      currentPreviewUrl = null;
+    }
+  }
+
+  previewCloseBtn.addEventListener('click', closeModal);
+
+  // 點擊 Modal 背景（overlay）也可關閉
+  previewModal.addEventListener('click', (e) => {
+    if (e.target === previewModal) closeModal();
+  });
+
+  // ESC 鍵關閉
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !previewModal.classList.contains('hidden')) closeModal();
+  });
+
+  // ── 輔助函式────────────────────────────────────────────────────
+  function showFieldError(el: HTMLParagraphElement, message: string | null): void {
+    if (message) {
+      el.textContent = message;
+      el.classList.remove('hidden');
+    } else {
+      el.classList.add('hidden');
+    }
+  }
+
+  function toggleBorderError(input: HTMLInputElement, hasError: boolean): void {
+    if (hasError) {
+      input.classList.add('border-error', 'focus:border-error', 'focus:ring-error/20');
+    } else {
+      input.classList.remove('border-error', 'focus:border-error', 'focus:ring-error/20');
+    }
+  }
+
+  function setPreviewLoading(loading: boolean): void {
+    previewBtn.disabled = loading;
+    previewLabel.textContent = loading ? '產生中…' : '預覽 PDF';
+  }
+
+  function setDownloadLoading(loading: boolean): void {
+    downloadBtn.disabled = loading;
+    downloadLabel.textContent = loading ? '產生中…' : '直接下載同意書 PDF';
+    downloadIcon.classList.toggle('hidden', loading);
+    loadingIcon.classList.toggle('hidden', !loading);
+  }
+</script>

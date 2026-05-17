@@ -1,0 +1,46 @@
+---
+// 民國日期欄位：年/月/日三欄，預設值由 JS 填入（當日民國日期）
+---
+
+<div class="space-y-1.5">
+  <label class="block text-sm font-medium text-primary">
+    同意日期（民國）
+    <span class="text-error">*</span>
+  </label>
+  <div class="flex items-center gap-2">
+    <div class="flex items-center gap-1">
+      <input
+        id="minguo-year"
+        type="number"
+        min="80"
+        max="130"
+        placeholder="114"
+        class="w-16 rounded-lg border border-border bg-surface px-2.5 py-2.5 text-center text-sm text-text shadow-xs outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+      />
+      <span class="text-sm text-muted">年</span>
+    </div>
+    <div class="flex items-center gap-1">
+      <input
+        id="minguo-month"
+        type="number"
+        min="1"
+        max="12"
+        placeholder="5"
+        class="w-14 rounded-lg border border-border bg-surface px-2.5 py-2.5 text-center text-sm text-text shadow-xs outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+      />
+      <span class="text-sm text-muted">月</span>
+    </div>
+    <div class="flex items-center gap-1">
+      <input
+        id="minguo-day"
+        type="number"
+        min="1"
+        max="31"
+        placeholder="17"
+        class="w-14 rounded-lg border border-border bg-surface px-2.5 py-2.5 text-center text-sm text-text shadow-xs outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+      />
+      <span class="text-sm text-muted">日</span>
+    </div>
+  </div>
+  <p id="date-error" class="hidden text-xs text-error"></p>
+</div>
