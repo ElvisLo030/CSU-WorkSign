@@ -18,6 +18,17 @@ import DevToolbar from '../components/DevToolbar.astro';
         <h1 class="text-2xl font-bold tracking-widest">正修工讀簽</h1>
         <p class="mt-0.5 text-xs tracking-wide text-white/55">兼職人員同意書線上簽署、匯出 PDF小工具</p>
       </div>
+      <a
+        href="https://github.com/ElvisLo030/CSU-WorkSign"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="在 GitHub 上查看原始碼"
+        class="text-white/70 hover:text-white transition-colors"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-7 h-7">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+        </svg>
+      </a>
     </div>
   </header>
 
@@ -31,7 +42,6 @@ import DevToolbar from '../components/DevToolbar.astro';
       <DateField />
       <SignatureCanvas />
       <DownloadButton />
-      <DevToolbar />
     </form>
   </main>
 
@@ -102,33 +112,37 @@ import DevToolbar from '../components/DevToolbar.astro';
   const DEV_KEY_ID  = 'csu_dev_id';
   const DEV_KEY_SIG = 'csu_dev_signature';
 
-  const devSaveBtn    = document.getElementById('dev-save-btn') as HTMLButtonElement;
-  const devClearBtn   = document.getElementById('dev-clear-btn') as HTMLButtonElement;
-  const devStatusBadge = document.getElementById('dev-status-badge') as HTMLSpanElement;
-  const devLastSaved  = document.getElementById('dev-last-saved') as HTMLParagraphElement;
+  const devSaveBtn    = document.getElementById('dev-save-btn') as HTMLButtonElement | null;
+  const devClearBtn   = document.getElementById('dev-clear-btn') as HTMLButtonElement | null;
+  const devStatusBadge = document.getElementById('dev-status-badge') as HTMLSpanElement | null;
+  const devLastSaved  = document.getElementById('dev-last-saved') as HTMLParagraphElement | null;
 
   function devSave(): void {
     try {
       localStorage.setItem(DEV_KEY_ID, idInput.value);
       const sigData = signatureService.exportData();
       localStorage.setItem(DEV_KEY_SIG, JSON.stringify(sigData));
-      const now = new Date().toLocaleTimeString('zh-TW');
-      devStatusBadge.textContent = '已暫存';
-      devStatusBadge.className = devStatusBadge.className
-        .replace('bg-gray-200 text-gray-500', 'bg-green-100 text-green-700');
-      devLastSaved.textContent = `最後儲存：${now}`;
+      if (devStatusBadge) {
+        const now = new Date().toLocaleTimeString('zh-TW');
+        devStatusBadge.textContent = '已暫存';
+        devStatusBadge.className = devStatusBadge.className
+          .replace('bg-gray-200 text-gray-500', 'bg-green-100 text-green-700');
+        if (devLastSaved) devLastSaved.textContent = `最後儲存：${now}`;
+      }
     } catch {
-      devLastSaved.textContent = '儲存失敗（可能超過 localStorage 容量）';
+      if (devLastSaved) devLastSaved.textContent = '儲存失敗（可能超過 localStorage 容量）';
     }
   }
 
   function devClear(): void {
     localStorage.removeItem(DEV_KEY_ID);
     localStorage.removeItem(DEV_KEY_SIG);
-    devStatusBadge.textContent = '未暫存';
-    devStatusBadge.className = devStatusBadge.className
-      .replace('bg-green-100 text-green-700', 'bg-gray-200 text-gray-500');
-    devLastSaved.textContent = '已清除';
+    if (devStatusBadge) {
+      devStatusBadge.textContent = '未暫存';
+      devStatusBadge.className = devStatusBadge.className
+        .replace('bg-green-100 text-green-700', 'bg-gray-200 text-gray-500');
+    }
+    if (devLastSaved) devLastSaved.textContent = '已清除';
   }
 
   function devRestore(): void {
@@ -151,16 +165,16 @@ import DevToolbar from '../components/DevToolbar.astro';
       } catch { /* 格式損壞就忽略 */ }
     }
 
-    if (savedId || savedSig) {
+    if ((savedId || savedSig) && devStatusBadge) {
       devStatusBadge.textContent = '已暫存';
       devStatusBadge.className = devStatusBadge.className
         .replace('bg-gray-200 text-gray-500', 'bg-green-100 text-green-700');
-      devLastSaved.textContent = '已從本地還原';
+      if (devLastSaved) devLastSaved.textContent = '已從本地還原';
     }
   }
 
-  devSaveBtn.addEventListener('click', devSave);
-  devClearBtn.addEventListener('click', devClear);
+  devSaveBtn?.addEventListener('click', devSave);
+  devClearBtn?.addEventListener('click', devClear);
 
   // 身分證字號變更時自動更新暫存（若已有儲存記錄）
   idInput.addEventListener('input', () => {
