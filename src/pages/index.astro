@@ -189,6 +189,25 @@ import DevToolbar from '../components/DevToolbar.astro';
   // ── 初始化────────────────────────────────────────────────────────
   signatureService.initialize(canvas);
 
+  // 偵測裝置是否支援 Web Share API 分享檔案，若支援則將按鈕改為「分享」語意
+  const canShareFile = (() => {
+    try {
+      const testFile = new File([], 'test.pdf', { type: 'application/pdf' });
+      return typeof navigator.canShare === 'function' && navigator.canShare({ files: [testFile] });
+    } catch {
+      return false;
+    }
+  })();
+
+  if (canShareFile) {
+    downloadLabel.textContent = '分享同意書 PDF';
+    // 將下載圖示換成分享圖示
+    downloadIcon.setAttribute('viewBox', '0 0 20 20');
+    downloadIcon.setAttribute('fill', 'none');
+    downloadIcon.setAttribute('stroke', 'currentColor');
+    downloadIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-1.105-.895-2-2-2s-2 .895-2 2 .895 2 2 2c.482 0 .938-.114 1.342-.316m0 0l4.632-2.668M8.684 13.342l-4.632-2.668M15 5a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM5 10a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/>`;
+  }
+
   const today = getTodayMinguo();
   yearInput.value = String(today.year);
   monthInput.value = String(today.month);
@@ -287,28 +306,22 @@ import DevToolbar from '../components/DevToolbar.astro';
     }
   });
 
-  // ── 從 Modal 直接下載 ─────────────────────────────────────────────
-  previewDownloadBtn.addEventListener('click', () => {
+  // ── 從 Modal 直接下載／分享 ───────────────────────────────────────
+  previewDownloadBtn.addEventListener('click', async () => {
     if (!currentPreviewUrl) return;
-    pdfDownloader.download(
-      // 重新從 blob URL 取 bytes（不重新產生 PDF）
-      new Uint8Array(), // placeholder — 改用 anchor 下載
-      currentFilename
-    );
-    // 直接用 anchor 下載現有 blob URL
-    const a = document.createElement('a');
-    a.href = currentPreviewUrl;
-    a.download = currentFilename;
-    a.click();
+    // 從現有 blob URL 取回 bytes 再交給 downloader（支援 Web Share API）
+    const res = await fetch(currentPreviewUrl);
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    await pdfDownloader.download(bytes, currentFilename);
   });
 
-  // ── 直接下載（不預覽）────────────────────────────────────────────
+  // ── 直接下載／分享（不預覽）──────────────────────────────────────
   downloadBtn.addEventListener('click', async () => {
     setDownloadLoading(true);
     try {
       const result = await generatePdfBytes();
       if (!result) return;
-      pdfDownloader.download(result.bytes, result.filename);
+      await pdfDownloader.download(result.bytes, result.filename);
     } catch (err) {
       console.error('PDF 產生失敗：', err);
       alert('PDF 產生過程發生錯誤，請重新嘗試。');
@@ -374,7 +387,7 @@ import DevToolbar from '../components/DevToolbar.astro';
 
   function setDownloadLoading(loading: boolean): void {
     downloadBtn.disabled = loading;
-    downloadLabel.textContent = loading ? '產生中…' : '直接下載同意書 PDF';
+    downloadLabel.textContent = loading ? '產生中…' : (canShareFile ? '分享同意書 PDF' : '直接下載同意書 PDF');
     downloadIcon.classList.toggle('hidden', loading);
     loadingIcon.classList.toggle('hidden', !loading);
   }
