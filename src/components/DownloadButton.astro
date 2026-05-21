@@ -1,5 +1,5 @@
 ---
-// 操作按鈕列：預覽 PDF + 下載 PDF
+// 操作按鈕列：預覽 PDF + 分享 PDF + 下載 PDF
 ---
 
 <div class="space-y-3">
@@ -16,11 +16,33 @@
     <span id="preview-label">預覽 PDF</span>
   </button>
 
-  <!-- 下載按鈕 -->
+  <!-- 手機引導提示（支援 Web Share API 才顯示） -->
+  <p id="mobile-share-hint" class="hidden rounded-lg bg-blue-50 px-4 py-2 text-center text-sm text-blue-600">
+    手機用戶建議點選「分享」按鈕以方便下載或傳送至其他裝置
+  </p>
+
+  <!-- 分享按鈕（支援 Web Share API 才顯示） -->
+  <button
+    id="share-btn"
+    type="button"
+    class="hidden w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-base font-semibold text-white shadow-md transition hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+  >
+    <!-- iOS 風格分享圖示：方框加向上箭頭 -->
+    <svg id="share-icon" xmlns="http://www.w3.org/2000/svg" class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/>
+    </svg>
+    <svg id="share-loading-icon" xmlns="http://www.w3.org/2000/svg" class="hidden size-5 animate-spin" viewBox="0 0 24 24" fill="none">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+    </svg>
+    <span id="share-label">分享同意書 PDF</span>
+  </button>
+
+  <!-- 下載按鈕（永遠顯示，手機為次要選項） -->
   <button
     id="download-btn"
     type="button"
-    class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-base font-semibold text-white shadow-md transition hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+    class="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-primary px-6 py-3 text-base font-semibold text-primary transition hover:bg-primary/5 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
   >
     <svg id="download-icon" xmlns="http://www.w3.org/2000/svg" class="size-5" viewBox="0 0 20 20" fill="currentColor">
       <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>
@@ -29,6 +51,6 @@
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
     </svg>
-    <span id="download-label">直接下載同意書 PDF</span>
+    <span id="download-label">下載同意書 PDF</span>
   </button>
 </div>

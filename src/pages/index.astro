@@ -94,6 +94,11 @@ import DevToolbar from '../components/DevToolbar.astro';
   const downloadLabel = document.getElementById('download-label') as HTMLSpanElement;
   const downloadIcon = document.getElementById('download-icon') as HTMLElement;
   const loadingIcon = document.getElementById('loading-icon') as HTMLElement;
+  const shareBtn = document.getElementById('share-btn') as HTMLButtonElement;
+  const shareLabel = document.getElementById('share-label') as HTMLSpanElement;
+  const shareIcon = document.getElementById('share-icon') as HTMLElement;
+  const shareLoadingIcon = document.getElementById('share-loading-icon') as HTMLElement;
+  const mobileShareHint = document.getElementById('mobile-share-hint') as HTMLElement;
   const previewBtn = document.getElementById('preview-btn') as HTMLButtonElement;
   const previewLabel = document.getElementById('preview-label') as HTMLSpanElement;
   const signatureHint = document.getElementById('signature-hint') as HTMLParagraphElement;
@@ -110,7 +115,7 @@ import DevToolbar from '../components/DevToolbar.astro';
 
   // 目前的預覽 blob URL（關閉時 revoke 釋放記憶體）
   let currentPreviewUrl: string | null = null;
-  let currentFilename = '兼職同意書.pdf';
+  let currentFilename = '正修兼職個資同意書.pdf';
 
   // ── 測試工具：localStorage 暫存────────────────────────────────────
   const DEV_KEY_ID  = 'csu_dev_id';
@@ -204,12 +209,10 @@ import DevToolbar from '../components/DevToolbar.astro';
   })();
 
   if (canShareFile) {
-    downloadLabel.textContent = '分享同意書 PDF';
-    // 將下載圖示換成分享圖示
-    downloadIcon.setAttribute('viewBox', '0 0 20 20');
-    downloadIcon.setAttribute('fill', 'none');
-    downloadIcon.setAttribute('stroke', 'currentColor');
-    downloadIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-1.105-.895-2-2-2s-2 .895-2 2 .895 2 2 2c.482 0 .938-.114 1.342-.316m0 0l4.632-2.668M8.684 13.342l-4.632-2.668M15 5a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM5 10a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/>`;
+    shareBtn.classList.remove('hidden');
+    // 引導提示只在手機顯示
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.matchMedia('(pointer: coarse)').matches;
+    if (isMobile) mobileShareHint.classList.remove('hidden');
   }
 
   const today = getTodayMinguo();
@@ -276,7 +279,7 @@ import DevToolbar from '../components/DevToolbar.astro';
     };
 
     const bytes = await pdfService.compose(formData, signatureDataUrl);
-    return { bytes, filename: `兼職同意書_${formData.idNumber}.pdf` };
+    return { bytes, filename: `正修兼職個資同意書_${formData.idNumber}.pdf` };
   }
 
   // ── 預覽 PDF ─────────────────────────────────────────────────────
@@ -319,7 +322,22 @@ import DevToolbar from '../components/DevToolbar.astro';
     await pdfDownloader.download(bytes, currentFilename);
   });
 
-  // ── 直接下載／分享（不預覽）──────────────────────────────────────
+  // ── 分享（Web Share API）──────────────────────────────────────────
+  shareBtn.addEventListener('click', async () => {
+    setShareLoading(true);
+    try {
+      const result = await generatePdfBytes();
+      if (!result) return;
+      await pdfDownloader.share(result.bytes, result.filename);
+    } catch (err) {
+      console.error('PDF 分享失敗：', err);
+      alert('PDF 產生過程發生錯誤，請重新嘗試。');
+    } finally {
+      setShareLoading(false);
+    }
+  });
+
+  // ── 直接下載（不預覽）────────────────────────────────────────────
   downloadBtn.addEventListener('click', async () => {
     setDownloadLoading(true);
     try {
@@ -389,9 +407,16 @@ import DevToolbar from '../components/DevToolbar.astro';
     previewLabel.textContent = loading ? '產生中…' : '預覽 PDF';
   }
 
+  function setShareLoading(loading: boolean): void {
+    shareBtn.disabled = loading;
+    shareLabel.textContent = loading ? '產生中…' : '分享同意書 PDF';
+    shareIcon.classList.toggle('hidden', loading);
+    shareLoadingIcon.classList.toggle('hidden', !loading);
+  }
+
   function setDownloadLoading(loading: boolean): void {
     downloadBtn.disabled = loading;
-    downloadLabel.textContent = loading ? '產生中…' : (canShareFile ? '分享同意書 PDF' : '直接下載同意書 PDF');
+    downloadLabel.textContent = loading ? '產生中…' : '下載同意書 PDF';
     downloadIcon.classList.toggle('hidden', loading);
     loadingIcon.classList.toggle('hidden', !loading);
   }

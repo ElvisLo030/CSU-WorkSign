@@ -38,4 +38,5 @@ export interface IPdfComposer {
 
 export interface IPdfDownloader {
   download(pdfBytes: Uint8Array, filename: string): Promise<void>;
+  share(pdfBytes: Uint8Array, filename: string): Promise<void>;
 }
