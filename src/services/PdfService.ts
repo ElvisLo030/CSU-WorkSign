@@ -6,7 +6,7 @@ import type { ConsentFormData, IPdfComposer } from '../types/index.js';
 // 以下座標已透過 sips 渲染 + 反覆標記測試確認
 const COORDS = {
   // 簽名圖片：立同意書人行（y=220）後方空白處，圖片底部在 y=206
-  signature: { x: 310, y: 210, width: 180, height: 50 },
+  signature: { x: 315, y: 210, width: 180, height: 50 },
   // 身分證字號：身分證統一編號行（y=185），標籤結束後 x=315
   idNumber:  { x: 350, y: 189, size: 15 },
   // 民國年份：中華民國行（y=152），「中 華 民 國」後方
