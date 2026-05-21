@@ -1,0 +1,110 @@
+---
+// LINE 瀏覽器提示元件：偵測 LINE IAB 並建議改用外部瀏覽器
+// 公告與版權文字可直接在下方的「公告區」修改
+---
+
+<div
+  id="line-notice-backdrop"
+  class="fixed inset-0 z-50 hidden items-end justify-center bg-black/50 backdrop-blur-sm"
+>
+  <div
+    id="line-notice-sheet"
+    class="w-full max-w-xl rounded-t-2xl bg-surface shadow-2xl translate-y-full transition-transform duration-300 ease-out"
+  >
+    <!-- 標題列 -->
+    <div class="flex items-center gap-3 border-b border-border px-5 py-4">
+      <span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+        <svg xmlns="http://www.w3.org/2000/svg" class="size-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+        </svg>
+      </span>
+      <div>
+        <p class="text-sm font-semibold text-primary">建議使用外部瀏覽器開啟</p>
+        <p class="text-xs text-muted">您目前正在使用 LINE 內建瀏覽器</p>
+      </div>
+    </div>
+
+    <!-- 說明文字 -->
+    <div class="px-5 py-4 text-sm text-text/80 leading-relaxed">
+      在 LINE 內建瀏覽器手寫簽名時，手指滑動手勢可能與頁面滾動衝突，導致
+      <span class="font-medium text-amber-700">簽名筆跡歪曲</span>。
+      建議點選下方按鈕，改用 Safari 或 Chrome 等外部瀏覽器以獲得最佳簽名體驗。
+    </div>
+
+    <!-- 操作按鈕 -->
+    <div class="flex flex-col gap-2 px-5 pb-6">
+      <button
+        id="line-notice-open-external"
+        type="button"
+        class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white shadow hover:bg-primary/90 active:scale-95 transition"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="size-4" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/>
+          <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/>
+        </svg>
+        在外部瀏覽器中開啟（建議）
+      </button>
+      <button
+        id="line-notice-dismiss"
+        type="button"
+        class="w-full rounded-xl px-4 py-2.5 text-sm text-muted ring-1 ring-border hover:bg-gray-100 hover:text-text active:scale-95 transition"
+      >
+        繼續使用 LINE 瀏覽器
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const DISMISS_KEY = 'line-notice-dismissed';
+
+  const backdrop = document.getElementById('line-notice-backdrop') as HTMLDivElement;
+  const sheet    = document.getElementById('line-notice-sheet')   as HTMLDivElement;
+  const openBtn  = document.getElementById('line-notice-open-external') as HTMLButtonElement;
+  const closeBtn = document.getElementById('line-notice-dismiss') as HTMLButtonElement;
+
+  const isLineIAB = navigator.userAgent.includes('Line/');
+  const alreadyDismissed = sessionStorage.getItem(DISMISS_KEY) !== null;
+
+  function showSheet(): void {
+    backdrop.classList.remove('hidden');
+    backdrop.classList.add('flex');
+    // 讓 translate 動畫在下一 frame 觸發
+    requestAnimationFrame(() => {
+      sheet.classList.remove('translate-y-full');
+    });
+    document.body.style.overflow = 'hidden';
+  }
+
+  function hideSheet(): void {
+    sheet.classList.add('translate-y-full');
+    setTimeout(() => {
+      backdrop.classList.add('hidden');
+      backdrop.classList.remove('flex');
+      document.body.style.overflow = '';
+    }, 300);
+  }
+
+  if (isLineIAB && !alreadyDismissed) {
+    showSheet();
+  }
+
+  openBtn.addEventListener('click', () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('openExternalBrowser', '1');
+    window.location.href = url.toString();
+  });
+
+  closeBtn.addEventListener('click', () => {
+    sessionStorage.setItem(DISMISS_KEY, '1');
+    hideSheet();
+  });
+
+  // 點擊背景也可關閉
+  backdrop.addEventListener('click', (e) => {
+    if (e.target === backdrop) {
+      sessionStorage.setItem(DISMISS_KEY, '1');
+      hideSheet();
+    }
+  });
+</script>

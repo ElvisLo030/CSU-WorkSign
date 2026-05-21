@@ -7,6 +7,7 @@ import DateField from '../components/DateField.astro';
 import PrivacyNotice from '../components/PrivacyNotice.astro';
 import DownloadButton from '../components/DownloadButton.astro';
 import PreviewModal from '../components/PreviewModal.astro';
+import LineBrowserNotice from '../components/LineBrowserNotice.astro';
 import DevToolbar from '../components/DevToolbar.astro';
 ---
 
@@ -61,6 +62,9 @@ import DevToolbar from '../components/DevToolbar.astro';
 
   <!-- PDF 預覽 Modal -->
   <PreviewModal />
+
+  <!-- LINE 瀏覽器提示（偵測 LINE IAB 時自動顯示） -->
+  <LineBrowserNotice />
 </BaseLayout>
 
 <script>

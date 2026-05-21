@@ -16,6 +16,9 @@ export class SignatureService implements ISignatureService {
     });
 
     window.addEventListener('resize', () => this.resizeCanvas());
+
+    // 明確阻止 touchmove 觸發頁面滾動，補強 CSS touch-action:none 在 LINE WebView 的不足
+    canvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
   }
 
   clear(): void {
